@@ -11,6 +11,7 @@ router.get('/', (req, res) => {
     DB.getBusStopDb().then( docs => {
         res.json(docs);
     }).catch( err => {
+        console.error(err);
         res.status(500).end();
     });
 });
@@ -19,6 +20,7 @@ router.get('/:id/arrinfos', (req, res) => {
     Parser.getBusStopArrInfos(req.params.id).then( routeArrInfos => {
         res.json(routeArrInfos);
     }).catch( err => {
+        console.error(err);
         res.status(500).end();
     });
 });

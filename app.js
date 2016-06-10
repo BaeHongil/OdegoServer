@@ -9,6 +9,7 @@ app = express();
 app.use(logger("combined"));
 app.use(bodyParser.json());
 
+app.get('/', (req, res) => res.status(200).end());
 app.use('/beacons', routes.beacons);
 app.use('/busstops', routes.busstops);
 app.use('/routes', routes.routes);

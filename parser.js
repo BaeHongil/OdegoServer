@@ -53,13 +53,9 @@ var cityCodePromise = new Promise( (resolve, reject) => {
  */
 function isToday(preDate) {
     var nowDate = new Date();
-    if( nowDate.getYear() - preDate.getYear() > 0 )
-        return false;
-    if( nowDate.getMonth() - preDate.getMonth() > 0 )
-        return false;
-    if( nowDate.getDate() - preDate.getDate() > 0)
-        return false;
-    return true;
+    return !( nowDate.getYear() > preDate.getYear()
+        || nowDate.getMonth() > preDate.getMonth()
+        || nowDate.getDate() > preDate.getDate() );
 }
 
 /**
@@ -209,6 +205,7 @@ function requestRouteList() {
     });
 }
 
+
 /* get 함수들 시작*/
 
 /**
@@ -353,17 +350,18 @@ function getArrInfos(busStopId, routeId, isForward) {
             if( elems.length > 0 ) {
                 elems.each((i, elem) => {
                     var arrInfo = new Item.ArrInfo();
-                    arrInfo.remainMin = $(elem).find('.st').text();
-                    var children = $(elem).children();
-                    arrInfo.curBusStopName = children.eq(1).find('td').text();
-                    var secondChild = children.eq(2);
-                    var rawRemainBusStopCount;
-                    if (secondChild.find('th').text() === '종료정류소') { // 버스막차일 경우에만 생기는 항목
-                        arrInfo.endBusStopName = secondChild.find('td').text();
-                        rawRemainBusStopCount = children.eq(3).text();
-                    } else
-                        rawRemainBusStopCount = secondChild.find('td').text();
-                    arrInfo.remainBusStopCount = rawRemainBusStopCount.substring(0, rawRemainBusStopCount.indexOf('개소'));
+                    arrInfo.remainMin = parseInt( $(elem).find('.st').text() );
+                    $(elem).find('tr').each( (i, elem) => {
+                        var th = $(elem).find('th').text().trim();
+                        if( th === '현재정류소' )
+                            arrInfo.curBusStopName = $(elem).find('td').text();
+                        else if( th === '종료정류소' )
+                            arrInfo.endBusStopName = $(elem).find('td').text();
+                        else if( th === '남은정류소' ) {
+                            rawRemainBusStopCount = $(elem).find('td').text();
+                            arrInfo.remainBusStopCount = parseInt( rawRemainBusStopCount.substring(0, rawRemainBusStopCount.indexOf('개소')) );
+                        }
+                    });
                     arrInfos.push(arrInfo);
                 })
             } else { // 도착 정보가 없을 때 -> "기점에서 버스가 출발 대기중이거나 운행 정보가 없습니다.", "기점에서 22시 26분에 출발예정입니다. "
@@ -404,12 +402,64 @@ function isTodayUpdatedRouteDetail (routeId) {
     return new Promise( (resolve, reject) => {
         Model.Route.findOne({id: routeId}, {_id: 0, __v: 0}, (err, route) => {
             if(err) reject(err);
-            if(route.updatedDetail && isToday(route.updatedDetail))
+            if(route && route.updatedDetail && isToday(route.updatedDetail))
                 resolve(route);
             resolve(null);
         });
     })
 }
+
+/**
+ * 노선정보가 DB에 없을 때 routeId를 통해 획득
+ * @param routeId
+ * @returns {Promise} Promise객체(Route 객체)
+ */
+function getRouteById (routeId) {
+    return isTodayUpdatedRouteDetail(routeId).then( route => {
+        if (route)
+            return route;
+
+        return new Promise((resolve, reject) => {
+            var url = Constants.DAEGU_ROUTE_INFO_URL + routeId;
+            var requestOption = {
+                method: 'GET',
+                url: url,
+                encoding: null,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:46.0)'
+                }
+            };
+            request(requestOption, (err, res, body) => {
+                // error 처리
+                if (err) reject(err);
+                else if (res.statusCode != 200) reject('requestBusStopArrInfos statusCode : ' + res.statusCode);
+
+                // response 처리
+                var strBody = iconv.decode(body, 'EUC-KR').toString();
+                var $ = cheerio.load(strBody);
+
+                var mRoute = Model.Route();
+                var idElem = $('#resultRed3');
+                mRoute.no = idElem.text().trim();
+
+                var children = $('.route_detail .align_left');
+                mRoute.id = routeId;
+                mRoute.direction = children.eq(0).text();
+                mRoute.startBusStopName = children.eq(1).text();
+                mRoute.endBusStopName = children.eq(2).text();
+                var interval = children.eq(3).text();
+                if( interval )
+                    mRoute.interval = parseInt( children.eq(3).text() );
+                mRoute.updatedDetail = new Date();
+                mRoute.save((err, route) => { if (err) reject(err) });
+                resolve(mRoute);
+            });
+        });
+
+    });
+}
+exports.getRouteById = getRouteById;
+
 
 /**
  * 노선상세정보을 대구버스홈페이지에 요청
@@ -435,29 +485,49 @@ function requestRouteDetailInfo(routeId) {
                 // response 처리
                 var $ = cheerio.load(body);
                 var elem = $('item');
-                Model.Route.findOne({id: routeId}, {_id: 0, __v: 0}, (err, route) => { // 이름으로 정류장 찾아 정류장 번호 modify
-                    if(err) reject(err);
-                    route.startBusStopName = elem.find('startnodenm').text();
-                    route.endBusStopName = elem.find('endnodenm').text();
-                    var strStartTime = elem.find('startvehicletime').text();
-                    route.startHour = strStartTime.substring(0, 2);
-                    route.startMin = strStartTime.substring(2);
-                    var strEndTime = elem.find('endvehicletime').text();
-                    route.endHour = strEndTime.substring(0, 2);
-                    route.endMin = strEndTime.substring(2);
-                    route.interval = elem.find('endvehicletime').text();
-                    route.intervalSat = elem.find('intervalsattime').text();
-                    route.intervalSun = elem.find('intervalsuntime').text();
-                    route.updatedDetail = new Date();
+                if( elem.length == 0 )
+                    getRouteById(routeId).then(resolve).catch(reject);
+                else {
+                    Model.Route.findOne({id: routeId}, {__v: 0}, (err, route) => { // 이름으로 정류장 찾아 정류장 번호 modify
+                        if (err) reject(err);
+                        route.startBusStopName = elem.find('startnodenm').text();
+                        route.endBusStopName = elem.find('endnodenm').text();
+                        var strStartTime = elem.find('startvehicletime').text();
+                        if( strStartTime ) {
+                            route.startHour = parseInt( strStartTime.substring(0, 2) );
+                            route.startMin = parseInt( strStartTime.substring(2) );
+                        }
+                        var strEndTime = elem.find('endvehicletime').text();
+                        if( strEndTime ) {
+                            route.endHour = parseInt( strEndTime.substring(0, 2) );
+                            route.endMin = parseInt( strEndTime.substring(2) );
+                        }
+                        var interval = elem.find('intervalTime').text();
+                        var intervalSat = elem.find('intervalsattime').text();
+                        var intervalSun = elem.find('intervalsuntime').text();
+                        if (interval)
+                            route.interval = parseInt( interval );
+                        if (intervalSat)
+                            route.intervalSat = parseInt( elem.find('intervalsattime').text() );
+                        if (intervalSun)
+                            route.intervalSun = parseInt( elem.find('intervalsuntime').text() );
+                        route.updatedDetail = new Date();
+                        route.save( (err) => {
+                            if(err) reject(err);
+                        } );
 
-                    resolve(route);
-                });
+                        resolve(route);
+                    });
+                }
             });
         });
     });
 
     return promise;
 }
+
+
+
 
 /**
  * 노선ID를 가지고 경류정류장 및 버스위치를 획득합니다.
@@ -564,37 +634,34 @@ function requestSearchBusId(requestOptions, searchBusId) {
 
             var foundIndex = -1;
             var busStops = topElems.find('span.pl39');
-            var busPosInfos = new Array(busStops.length);
 
             topElems.find('li.bloc_b').each(function (i, elem) { // 버스위치 정보 및 버스ID 획득
                 var plainText = $(elem).text();
                 var endOffset = plainText.indexOf('(');
                 var index = $(elem).index() - i -1;
-                
-                busPosInfos[index] = new Item.BusPosInfo();
-                busPosInfos[index].busId = plainText.substr(0, endOffset).trim();
-                if( foundIndex == -1 && busPosInfos[index].busId == searchBusId )
+
+                var busId = plainText.substr(0, endOffset).trim();
+                if( busId == searchBusId ) {
                     foundIndex = index;
-                if( $(this).hasClass('nsbus') )
-                    busPosInfos[index].isNonStepBus = true;
+                    return false;
+                }
             });
 
             if (foundIndex == -1)
                 resolve(null);
 
-            var busIdPromises = [];
+            var busStopIds = [];
+            var busStopIdPromises = [];
             busStops.each(function (i, elem) { // 버스 정류장 목록 파싱
                 var plainText = $(elem).text();
                 var startOffset = plainText.indexOf('. ');
-                if (busPosInfos[i] === undefined)
-                    busPosInfos[i] = new Item.BusPosInfo();
-
+                
                 var busStopName = plainText.substr(startOffset + 2);
-                busIdPromises.push(DB.getBusStopByName(busStopName, busPosInfos[i]));
+                busStopIdPromises.push(DB.getBusStopIdByName(busStopName, busStopIds[i]));
             });
             
-            Promise.all(busIdPromises).then(() => {
-                resolve(new Item.BeaconArrInfos(searchBusId, foundIndex, busPosInfos));
+            Promise.all(busStopIdPromises).then(() => {
+                resolve(new Item.BeaconArrInfos(searchBusId, foundIndex, busStopIds));
             }).catch(reject);
         });
     });

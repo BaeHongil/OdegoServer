@@ -5,9 +5,11 @@ var DB = require('../db');
 var Parser = require('../parser');
 var express = require('express');
 var gcm = require('node-gcm');
+var Constants = require('../constants');
 var router = express.Router();
 
-var test = 1;
+var sender = new gcm.Sender(Constants.FCM_SERVER_KEY);
+
 // GET 노선 DB
 router.post('/busarr', (req, res) => {
     var notiReqMsg = req.body;
@@ -15,6 +17,9 @@ router.post('/busarr', (req, res) => {
     isNearReqBusStop(notiReqMsg).then(() => {
         console.log('in loopPromise');
         notifyToClient(notiReqMsg);
+    }).catch( err => {
+        console.error(err);
+        res.status(500).end();
     });
     res.status(202).end();
 });
@@ -46,6 +51,18 @@ function notifyToClient(notiReqMsg, timeout) {
                     console.log('지나감요');
                     resolve('end');
                 } else if (remainCount <= notiReqMsg.requestRemainCount) {
+                    // FCM 사용해서 푸시메시지 보내기
+                    var message = new gcm.Message({
+                        collapse_key : 'busarrnoti',
+                        priority : 'high',
+                        time_to_live : 10,
+                        notification : { remainCount: remainCount }
+                    });
+                    sender.send(message, notiReqMsg.fcmToken, (err, res) => {
+                        if(err) console.error(err);
+                        else    console.log(response);
+                    });
+
                     console.log(remainCount + '개소 정류장 남았습니다.');
                     resolve( notifyToClient(notiReqMsg, 10 * 1000) );
                 } else {// 아직 버스가 requestRemainCount보다 멀리 존재

@@ -12,7 +12,9 @@ var Constants = {
     DAUGU_DOMAIN : 'http://m.businfo.go.kr/bp/m/',
     BUSSTOP_ARRINFOS_PATH : 'realTime.do?act=arrInfoRouteList&bsNm=&bsId=',
     BUSSTOP_ROUTEARRINFOS_PATH : 'realTime.do?act=arrInfoRoute&bsNm=&roNo=&bsId=',
-    BUS_POSINFOS_PATH : 'realTime.do?act=posInfo&roNo=&roId='
+    BUS_POSINFOS_PATH : 'realTime.do?act=posInfo&roNo=&roId=',
+    DAEGU_ROUTE_INFO_URL : 'http://businfo.daegu.go.kr/ba/route/route.do?act=findByService&routeId=',
+    FCM_SERVER_KEY : 'AIzaSyDMlBccXfPK6e_e-rPdIdkGQiUxTcRr7z4'
 };
 
 module.exports = Constants;

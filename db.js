@@ -60,6 +60,25 @@ exports.getBusStopByName = function (name, busPosInfo) {
 };
 
 /**
+ *  정류장 이름으로 정류장ID를 획득해서 busStopId에 넣습니다.
+ *
+ * @param name  정류장 이름
+ * @param busStopId  버스정류장 ID
+ * @returns {Promise}  Promise객체(busStopId 객체를 리턴)
+ */
+exports.getBusStopIdByName = function (name, busStopId) {
+    return new Promise( (resolve, reject) => {
+        Model.BusStop.findOne(
+            {name : name},
+            {id : 1},(err, busStop) => {
+                if(err) reject(err);
+                busStopId = busStop.id;
+                resolve(busStopId);
+            });
+    });
+};
+
+/**
  * 비콘을 찾습니다.
  * 
  * @param UUID
@@ -87,10 +106,12 @@ exports.getBeacon = function (UUID, major, minor) {
  */
 exports.getBusStopDb = function () {
     return new Promise( (resolve, reject) => {
-        Model.BusStop.find((err, docs) => {
-            if(err) reject(err);
-            resolve(docs);
-        })
+        Model.BusStop.find()
+            .select( {_id: 0, __v:0} )
+            .exec((err, docs) => {
+                if(err) reject(err);
+                resolve(docs);
+            });
     });
 };
 
@@ -101,9 +122,11 @@ exports.getBusStopDb = function () {
  */
 exports.getRouteDb = function () {
     return new Promise( (resolve, reject) => {
-        Model.Route.find((err, docs) => {
-            if(err) reject(err);
-            resolve(docs);
-        })
+        Model.Route.find()
+            .select( {_id: 0, __v:0} )
+            .exec((err, docs) => {
+                if(err) reject(err);
+                resolve(docs);
+            });
     });
 };
