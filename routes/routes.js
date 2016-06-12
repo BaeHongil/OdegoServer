@@ -48,12 +48,13 @@ router.get('/:id/busposinfos', (req, res) => {
 router.get('/:id/buspos', (req, res) => {
     if( !req.query.isforward || !req.query.busid ) res.status(400).end();
     var isForward = (req.query.isforward == 'true');
-    var rawBusId = req.query.busid;
-    var busId = rawBusId.substring(0, rawBusId.length - 4) + ' ' + rawBusId.substring(rawBusId.length - 4);
+    var busId = req.query.busid;
+    console.log(busId);
     Parser.getBusPosByBusId(req.params.id, isForward, busId).then( index => {
         if( index === null)
-            res.statusCode(410).end();
-        res.json(index);
+            res.status(404).end();
+        else
+            res.json(index);
     }).catch( err => {
         console.error(err);
         res.status(500).end();

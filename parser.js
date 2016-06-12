@@ -23,8 +23,15 @@ var cityCodePromise = new Promise( (resolve, reject) => {
 
     request(requestOptions, (err, res, body) => {
         // error 처리
-        if (err) reject(err);
-        else if (res.statusCode != 200) reject('getDaeguCityCode statusCode : ' + res.statusCode);
+        if (err) {
+            reject(err);
+            daeguCityCode = 22;
+            return console.err(err);
+        } else if (res.statusCode != 200) {
+            reject('cityCodePromise statusCode : ' + res.statusCode);
+            daeguCityCode = 22;
+            return console.err('cityCodePromise statusCode : ' + res.statusCode);
+        }
 
         // response 처리
         var $ = cheerio.load(body);
@@ -59,6 +66,21 @@ function isToday(preDate) {
 }
 
 /**
+ *  바이트 배열을 euc-kr로 string 변환
+ *
+ * @param body iconv할 body
+ * @returns {string|String|*} body를 euc-kr로 바꾼 string
+ */
+function iconvEucKr(body) {
+    try {
+        return iconv.decode(body, 'EUC-KR').toString();
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+}
+
+/**
  * 버스정류장 DB 생성
  *
  * @param isDropCollection  기존의 Collection(Table)을 Drop할거면 true, 아니면 false
@@ -88,8 +110,13 @@ function requestBusStopList() {
 
         request(url, (err, res, body) => {
             // error 처리
-            if (err) reject(err);
-            else if (res.statusCode != 200) reject('requestBusStopList statusCode : ' + res.statusCode);
+            if (err) {
+                reject(err);
+                return console.err(err);
+            } else if (res.statusCode != 200) {
+                reject('requestBusStopList statusCode : ' + res.statusCode);
+                return console.err('requestBusStopList statusCode : ' + res.statusCode);
+            }
 
             // response 처리
             var $ = cheerio.load(body);
@@ -125,12 +152,17 @@ function requestBusStopNoList() {
         };
         request(requestOption, (err, res, body) => {
             // error 처리
-            if (err) reject(err);
-            else if (res.statusCode != 200) reject('requestBusStopList statusCode : ' + res.statusCode);
+            if (err) {
+                reject(err);
+                return console.err(err);
+            } else if (res.statusCode != 200) {
+                reject('requestBusStopNoList statusCode : ' + res.statusCode);
+                return console.err('requestBusStopNoList statusCode : ' + res.statusCode);
+            }
 
             // response 처리
-            var strContenst = iconv.decode(body, 'EUC-KR').toString();
-            var $ = cheerio.load(strContenst);
+            var strBody = iconvEucKr(body);
+            var $ = cheerio.load(strBody);
             $('tbody tr').each( (i, elem) => {
                 var children = $(elem).children();
                 var no = children.eq(1).text(); // 정류장 번호
@@ -179,8 +211,13 @@ function requestRouteList() {
 
         request(url, (err, res, body) => {
             // error 처리
-            if (err) reject(err);
-            else if (res.statusCode != 200) reject('requestRouteList statusCode : ' + res.statusCode);
+            if (err) {
+                reject(err);
+                return console.err(err);
+            } else if (res.statusCode != 200) {
+                reject('requestRouteList statusCode : ' + res.statusCode);
+                return console.err('requestRouteList statusCode : ' + res.statusCode);
+            }
 
             // response 처리
             var $ = cheerio.load(body);
@@ -260,11 +297,16 @@ function requestBusStopArrInfos(busStopId) {
         };
         request(requestOption, (err, res, body) => {
             // error 처리
-            if (err) reject(err);
-            else if (res.statusCode != 200) reject('requestBusStopArrInfos statusCode : ' + res.statusCode);
+            if (err) {
+                resolve( requestBusStopArrInfos(busStopId) );
+                return console.err(err);
+            } else if (res.statusCode != 200) {
+                resolve( requestBusStopArrInfos(busStopId) );
+                return console.err('requestBusStopArrInfos statusCode : ' + res.statusCode);
+            }
 
             // response 처리
-            var strBody = iconv.decode(body, 'EUC-KR').toString();
+            var strBody = iconvEucKr(body);
             var $ = cheerio.load(strBody);
             var routeInfos = [];
             var routeArrInfos = [];
@@ -339,11 +381,16 @@ function getArrInfos(busStopId, routeId, isForward) {
         };
         request(requestOption, (err, res, body) => {
             // error 처리
-            if (err) reject(err);
-            else if (res.statusCode != 200) reject('getArrInfos statusCode : ' + res.statusCode);
+            if (err) {
+                resolve( getArrInfos(busStopId, routeId, isForward) );
+                return console.err(err);
+            } else if (res.statusCode != 200) {
+                resolve( getArrInfos(busStopId, routeId, isForward) );
+                return console.err('getArrInfos statusCode : ' + res.statusCode);
+            }
 
             // response 처리
-            var strBody = iconv.decode(body, 'EUC-KR').toString();
+            var strBody = iconvEucKr(body);
             var $ = cheerio.load(strBody);
             var elems = $('table.air tbody');
             var arrInfos = [];
@@ -431,11 +478,16 @@ function getRouteById (routeId) {
             };
             request(requestOption, (err, res, body) => {
                 // error 처리
-                if (err) reject(err);
-                else if (res.statusCode != 200) reject('requestBusStopArrInfos statusCode : ' + res.statusCode);
+                if (err) {
+                    resolve( getRouteById(routeId) );
+                    return console.err(err);
+                } else if (res.statusCode != 200) {
+                    resolve( getRouteById(routeId) );
+                    return console.err('getRouteById statusCode : ' + res.statusCode);
+                }
 
                 // response 처리
-                var strBody = iconv.decode(body, 'EUC-KR').toString();
+                var strBody = iconvEucKr(body);
                 var $ = cheerio.load(strBody);
 
                 var mRoute = Model.Route();
@@ -479,8 +531,13 @@ function requestRouteDetailInfo(routeId) {
 
             request(url, (err, res, body) => {
                 // error 처리
-                if (err) reject(err);
-                else if (res.statusCode != 200) reject('requestRouteDetailInfo statusCode : ' + res.statusCode);
+                if (err) {
+                    resolve( requestRouteDetailInfo(routeId) );
+                    return console.err(err);
+                } else if (res.statusCode != 200) {
+                    resolve( requestRouteDetailInfo(routeId) );
+                    return console.err('requestRouteDetailInfo statusCode : ' + res.statusCode);
+                }
 
                 // response 처리
                 var $ = cheerio.load(body);
@@ -536,7 +593,7 @@ function requestRouteDetailInfo(routeId) {
  * @param isForward 정방향이면 true, 역방향이면 false
  * @returns {Promise}  Promise객체(busPosInfos를 리턴)
  */
-exports.getBusPosInfos = function (routeId, isForward) {
+exports.getBusPosInfos = function getBusPosInfos(routeId, isForward) {
     return new Promise( (resolve, reject) => {
         var url = Constants.DAUGU_DOMAIN + Constants.BUS_POSINFOS_PATH + routeId
             + '&moveDir=' + (isForward ? 1:0);
@@ -548,12 +605,17 @@ exports.getBusPosInfos = function (routeId, isForward) {
 
         request(requestOptions, function(err, res, body) {
             // error 처리
-            if (err) reject(err);
-            else if (res.statusCode != 200) reject('getBusPosInfos statusCode : ' + res.statusCode);
+            if (err) {
+                resolve( getBusPosInfos(routeId, isForward) );
+                return console.err(err);
+            } else if (res.statusCode != 200) {
+                resolve( getBusPosInfos(routeId, isForward) );
+                return console.err('getBusPosInfos statusCode : ' + res.statusCode);
+            }
 
             // response 처리
-            var strContents = iconv.decode(body, 'EUC-KR').toString();
-            var $ = cheerio.load(strContents);
+            var strBody = iconvEucKr(body);
+            var $ = cheerio.load(strBody);
             var topElems = $('ol.bl');
 
             var busIdPromises = [];
@@ -612,10 +674,13 @@ exports.getBusPosInfosByBusId = function (routeId, searchBusId) {
         var backwardPromise = requestSearchBusId(backwardRequestOptions, searchBusId);
         Promise.all([forwardPromise, backwardPromise]).then( (values) => {
             var beaconArrInfos = values[0] || values[1];
-            beaconArrInfos.routeId = routeId;
-            beaconArrInfos.isForward = true;
-            
-            resolve(beaconArrInfos);
+            if( beaconArrInfos === null ) {
+                resolve(null);
+            } else {
+                beaconArrInfos.routeId = routeId;
+                beaconArrInfos.isForward = true;
+                resolve(beaconArrInfos);
+            }
         }).catch( reject );
     });
 };
@@ -624,16 +689,20 @@ function requestSearchBusId(requestOptions, searchBusId) {
     return new Promise( (resolve, reject) => {
         request(requestOptions, function(err, res, body) {
             // error 처리
-            if (err) reject(err);
-            else if (res.statusCode != 200) reject('getBusPosInfos statusCode : ' + res.statusCode);
+            if (err) {
+                resolve( requestSearchBusId(requestOptions, searchBusId) );
+                return console.err(err);
+            } else if (res.statusCode != 200) {
+                resolve( requestSearchBusId(requestOptions, searchBusId) );
+                return console.err('requestSearchBusId statusCode : ' + res.statusCode);
+            }
 
             // response 처리
-            var strContents = iconv.decode(body, 'EUC-KR').toString();
-            var $ = cheerio.load(strContents);
+            var strBody = iconvEucKr(body);
+            var $ = cheerio.load(strBody);
             var topElems = $('ol.bl');
 
             var foundIndex = -1;
-            var busStops = topElems.find('span.pl39');
 
             topElems.find('li.bloc_b').each(function (i, elem) { // 버스위치 정보 및 버스ID 획득
                 var plainText = $(elem).text();
@@ -652,14 +721,14 @@ function requestSearchBusId(requestOptions, searchBusId) {
 
             var busStopIds = [];
             var busStopIdPromises = [];
-            busStops.each(function (i, elem) { // 버스 정류장 목록 파싱
+            topElems.find('span.pl39').each(function (i, elem) { // 버스 정류장 목록 파싱
                 var plainText = $(elem).text();
                 var startOffset = plainText.indexOf('. ');
                 
                 var busStopName = plainText.substr(startOffset + 2);
-                busStopIdPromises.push(DB.getBusStopIdByName(busStopName, busStopIds[i]));
+                busStopIdPromises.push(DB.getBusStopIdByName(busStopName, busStopIds, i));
             });
-            
+
             Promise.all(busStopIdPromises).then(() => {
                 resolve(new Item.BeaconArrInfos(searchBusId, foundIndex, busStopIds));
             }).catch(reject);
@@ -675,7 +744,7 @@ function requestSearchBusId(requestOptions, searchBusId) {
  * @param searchBusId  버스차량번호
  * @returns {Promise}  Promise객체(index을 리턴)
  */
-exports.getBusPosByBusId = function (routeId, isForward, searchBusId) {
+exports.getBusPosByBusId = function getBusPosByBusId(routeId, isForward, searchBusId) {
     return new Promise( (resolve, reject) => {
         var url = Constants.DAUGU_DOMAIN + Constants.BUS_POSINFOS_PATH + routeId
             + '&moveDir=' + (isForward ? 1:0);
@@ -687,13 +756,17 @@ exports.getBusPosByBusId = function (routeId, isForward, searchBusId) {
 
         request(requestOptions, function(err, res, body) {
             // error 처리
-            if (err) reject(err);
-            else if (res.statusCode != 200) reject('getBusPosInfos statusCode : ' + res.statusCode);
+            if (err) {
+                resolve( getBusPosByBusId(routeId, isForward, searchBusId) );
+                return console.err(err);
+            } else if (res.statusCode != 200) {
+                resolve( getBusPosByBusId(routeId, isForward, searchBusId) );
+                return console.err('getBusPosByBusId statusCode : ' + res.statusCode);
+            }
 
             // response 처리
-            var foundIndex = -1;
-            var strContents = iconv.decode(body, 'EUC-KR').toString();
-            var $ = cheerio.load(strContents);
+            var strBody = iconvEucKr(body);
+            var $ = cheerio.load(strBody);
             var topElems = $('ol.bl');
 
             topElems.find('li.bloc_b').each(function (i, elem) {

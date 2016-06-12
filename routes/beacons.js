@@ -13,7 +13,10 @@ router.get('/:uuid/:major/:minor/busposinfos', (req, res) => {
     DB.getBeacon(uuid, major, minor).then( beacon => {
         return Parser.getBusPosInfosByBusId(beacon.routeId, beacon.busId);
     }).then( beaconArrInfos => {
-        res.json(beaconArrInfos);
+        if( !beaconArrInfos )
+            res.status(404).end();
+        else
+            res.json(beaconArrInfos);
     } ).catch( err => {
         console.error(err);
         res.status(500).end();

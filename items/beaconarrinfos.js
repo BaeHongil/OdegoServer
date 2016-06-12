@@ -7,6 +7,6 @@ module.exports = class BeaconArrInfo {
         this.isForward = null;
         this.busId = busId;
         this.foundIndex = foundIndex;
-        this.busStopIds = busStops;
+        this.busStopIds = busStopIds;
     }
 }

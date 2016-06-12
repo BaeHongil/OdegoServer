@@ -54,8 +54,60 @@ sender.send(message, regTokens, function (err, response) {
     if(err) console.error(err);
     else    console.log(response);
 });*/
+/*
 
+var request = require('request');
+var iconv = require('iconv-lite');
+var a = [ {a : 33} ];
 
-var testarr = [];
-testarr[2] = "aa";
-console.log(testarr);
+function test() {
+    var url = "http://m.businfo.go.kr/bp/m/realTime.do?act=posInfo&roId=1000001000&roNo="
+    var requestOptions = {
+        method: "GET",
+        uri: url,
+        encoding: null
+    };
+
+    request(requestOptions, function (err, res, body) {
+
+        // response 처리
+        var strContents = iconv.decode(body, 'EUC-KR').toString();
+        try {
+            console.log(strContents);
+        } catch (e) {
+            console.log(e.message);
+            console.log(body);
+        }
+        /!*var $ = cheerio.load(strContents);
+        var topElems = $('ol.bl');
+
+        topElems.find('li.bloc_b').each(function (i, elem) {
+            var plainText = $(elem).text();
+            var endOffset = plainText.indexOf('(');
+            var index = $(elem).index() - i - 1;
+
+            var busId = plainText.substr(0, endOffset).trim();
+            if (busId == searchBusId)
+                resolve(index);
+        });*!/
+
+        // 버스번호에 해당되는 버스위치를 못 찾았을 때
+    });
+}
+
+setInterval(test, 1000);
+*/
+
+var obj = {};
+var token = "aaaa";
+if( !obj[token] )
+    obj[token] = [];
+console.log(obj[token]);
+var inner = { name : "john"};
+obj[token].push(inner);
+if( !obj[token] )
+    obj[token] = [];
+obj[token].push({ name : "john2"});
+console.log(obj);
+inner.name = "bob";
+console.log(obj[token][obj[token].length - 1]);

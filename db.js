@@ -60,20 +60,21 @@ exports.getBusStopByName = function (name, busPosInfo) {
 };
 
 /**
- *  정류장 이름으로 정류장ID를 획득해서 busStopId에 넣습니다.
+ *  정류장 이름으로 정류장ID를 획득해서 busStopIds의 index에 넣습니다.
  *
  * @param name  정류장 이름
- * @param busStopId  버스정류장 ID
+ * @param busStopIds 버스정류장 ID 배열
+ * @param i busStopIds에 넣을 인덱스
  * @returns {Promise}  Promise객체(busStopId 객체를 리턴)
  */
-exports.getBusStopIdByName = function (name, busStopId) {
+exports.getBusStopIdByName = function (name, busStopIds, i) {
     return new Promise( (resolve, reject) => {
         Model.BusStop.findOne(
             {name : name},
             {id : 1},(err, busStop) => {
                 if(err) reject(err);
-                busStopId = busStop.id;
-                resolve(busStopId);
+                busStopIds[i] = busStop.id;
+                resolve(busStopIds[i]);
             });
     });
 };
