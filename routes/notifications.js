@@ -29,7 +29,7 @@ router.put('/busarr/:fcm_token', (req, res) => {
     else {
         var reqBody = req.body;
         // 기존 BusArr 데이터
-        var lastBusArr = clients[fcmToken][ clients[fcmToken] - 1];
+        var lastBusArr = clients[fcmToken][ clients[fcmToken].length - 1];
         lastBusArr.isValid = false; // 기존 BusArr Notification 취소
         
         // 새로운 BusArr 데이터
@@ -97,9 +97,9 @@ function notifyToClient(fcmToken, mBusArr, timeout) {
                         }
 
                         if( remainCount == 0 ) resolve(false);
-                        else resolve( notifyToClient(fcmToken, mBusArr, 20 * 1000) );
+                        else resolve( notifyToClient(fcmToken, mBusArr, 5 * 1000) );
                     } else {// 아직 버스가 requestRemainCount보다 멀리 존재
-                        resolve( notifyToClient(fcmToken, mBusArr, 30 * 1000) );
+                        resolve( notifyToClient(fcmToken, mBusArr, 15 * 1000) );
                     }
                 }).catch(reject);
             } else

@@ -98,16 +98,4 @@ function test() {
 setInterval(test, 1000);
 */
 
-var obj = {};
-var token = "aaaa";
-if( !obj[token] )
-    obj[token] = [];
-console.log(obj[token]);
-var inner = { name : "john"};
-obj[token].push(inner);
-if( !obj[token] )
-    obj[token] = [];
-obj[token].push({ name : "john2"});
-console.log(obj);
-inner.name = "bob";
-console.log(obj[token][obj[token].length - 1]);
+console.error("ㅁㅁ");
